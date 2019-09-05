@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.3" />
+    <PackageReference Include="TencentCloudSDK" Version="3.0.37" />
+  </ItemGroup>
+
+</Project>
