@@ -38,12 +38,12 @@ namespace VodSDK
             VodClient vodClient = new VodClient(cred, region);
 
             ApplyUploadResponse applyResp = DoApplyRequest(vodClient, req);
-            Console.WriteLine(AbstractModel.ToJsonString(applyResp));
+            //Console.WriteLine(AbstractModel.ToJsonString(applyResp));
 
             DoUploadAction(applyResp, req);
 
             CommitUploadResponse commitResp = DoCommitRequest(vodClient, applyResp);
-            Console.WriteLine(AbstractModel.ToJsonString(commitResp));
+            //Console.WriteLine(AbstractModel.ToJsonString(commitResp));
 
             VodUploadResponse rsp = new VodUploadResponse();
             rsp.FileId = commitResp.FileId;
