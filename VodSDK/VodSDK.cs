@@ -45,9 +45,7 @@ namespace VodSDK
             CommitUploadResponse commitResp = DoCommitRequest(vodClient, applyResp);
             //Console.WriteLine(AbstractModel.ToJsonString(commitResp));
 
-            VodUploadResponse rsp = new VodUploadResponse();
-            rsp.FileId = commitResp.FileId;
-            rsp.MediaUrl = commitResp.MediaUrl;
+            VodUploadResponse rsp= AbstractModel.FromJsonString<VodUploadResponse>( AbstractModel.ToJsonString(commitResp));
             return rsp;
         }
 
@@ -91,21 +89,19 @@ namespace VodSDK
 
         private ApplyUploadResponse DoApplyRequest(VodClient client, VodUploadRequest req)
         {
-            ApplyUploadRequest applyReq = new ApplyUploadRequest();
-            applyReq.MediaType = System.IO.Path.GetExtension(req.MediaFilePath).Substring(1);
-            applyReq.MediaName = System.IO.Path.GetFileName(req.MediaFilePath);
+            req.MediaType = System.IO.Path.GetExtension(req.MediaFilePath).Substring(1);
+            req.MediaName = System.IO.Path.GetFileName(req.MediaFilePath);
             if (req.CoverFilePath != null && req.CoverFilePath != "")
             {
-                applyReq.CoverType = System.IO.Path.GetExtension(req.CoverFilePath).Substring(1);
+                req.CoverType = System.IO.Path.GetExtension(req.CoverFilePath).Substring(1);
             }
-            applyReq.Procedure = req.Procedure;
 
             TencentCloudSDKException err = null;
             for (int i = 0; i < retryTime; i++)
             {
                 try
                 {
-                    return client.ApplyUpload(applyReq).
+                    return client.ApplyUpload(req).
                         ConfigureAwait(false).GetAwaiter().GetResult();
                 }
                 catch (TencentCloudSDKException exception)
@@ -261,17 +257,13 @@ namespace VodSDK
         public VodClientException(string e) : base(e) { }
     }
 
-    public class VodUploadRequest
+    public class VodUploadRequest:ApplyUploadRequest
     {
         public string MediaFilePath { get; set; }
         public string CoverFilePath { get; set; }
-        public string Procedure { get; set; }
     }
 
-    public class VodUploadResponse
+    public class VodUploadResponse:CommitUploadResponse
     {
-        public string FileId { get; set; }
-        public string MediaUrl { get; set; }
-
     }
 }
