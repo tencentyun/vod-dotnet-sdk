@@ -167,6 +167,7 @@ namespace VodSDK
         {
             CosXml CosXml;
             UploadPartRequest Req;
+            public Exception partException;
             public UploadPartResult Result { get; set; }
 
             public UploadOnePart(CosXml cosXml, UploadPartRequest req)
@@ -178,7 +179,14 @@ namespace VodSDK
 
             public void UploadPartResult()
             {
-                Result = CosXml.UploadPart(Req);
+                try
+                {
+                    Result = CosXml.UploadPart(Req);
+                }
+                catch (Exception e)
+                {
+                    partException = e;
+                }
             }
         }
 
@@ -187,14 +195,11 @@ namespace VodSDK
             try
             {
                 InitMultipartUploadRequest initMultipartUploadRequest = new InitMultipartUploadRequest(bucket, key);
-                //设置签名有效时长
-                initMultipartUploadRequest.SetSign(TimeUtils.GetCurrentTime(TimeUnit.SECONDS), 600);
                 InitMultipartUploadResult initMultipartUploadResult = cosXml.InitMultipartUpload(initMultipartUploadRequest);
 
                 string uploadId = initMultipartUploadResult.initMultipartUpload.uploadId;
 
                 CompleteMultipartUploadRequest completeMultiUploadRequest = new CompleteMultipartUploadRequest(bucket, key, uploadId);
-                completeMultiUploadRequest.SetSign(TimeUtils.GetCurrentTime(TimeUnit.SECONDS), 600);
 
                 FileInfo fileInfo = new FileInfo(srcPath);
                 long contentLength = fileInfo.Length;
@@ -219,8 +224,6 @@ namespace VodSDK
                         }
 
                         UploadPartRequest uploadPartRequest = new UploadPartRequest(bucket, key, (int)(i + j + 1), uploadId, srcPath, (i + j) * partSize, partSize);
-                        //设置签名有效时长
-                        uploadPartRequest.SetSign(TimeUtils.GetCurrentTime(TimeUnit.SECONDS), 600);
 
                         uploadList[j] = new UploadOnePart(cosXml, uploadPartRequest);
                         ThreadStart childref = new ThreadStart(uploadList[j].UploadPartResult);
@@ -234,6 +237,10 @@ namespace VodSDK
                             break;
                         }
                         workPool[j].Join();
+                        if (uploadList[j].partException != null)
+                        {
+                            throw uploadList[i].partException;
+                        }
                         completeMultiUploadRequest.SetPartNumberAndETag(i + j + 1, uploadList[j].Result.eTag);
                     }
                 }
