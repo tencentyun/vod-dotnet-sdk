@@ -245,7 +245,7 @@ namespace VodSDK
                     }
                 }
 
-                //执行请求
+                //execute
                 CompleteMultipartUploadResult completeMultiUploadResult = cosXml.CompleteMultiUpload(completeMultiUploadRequest);
             }
             catch (COSXML.CosException.CosClientException clientEx)
