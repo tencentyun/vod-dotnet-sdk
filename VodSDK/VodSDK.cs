@@ -1,10 +1,12 @@
 ﻿using COSXML;
 using COSXML.Auth;
 using COSXML.Model.Object;
+using COSXML.Transfer;
 using COSXML.Utils;
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using TencentCloud.Common;
 using TencentCloud.Vod.V20180717;
 using TencentCloud.Vod.V20180717.Models;
@@ -26,7 +28,7 @@ namespace VodSDK
             SecretKey = secretKey;
         }
 
-        public VodUploadResponse Upload(string region, VodUploadRequest req)
+        public async Task<VodUploadResponse> Upload(string region, VodUploadRequest req)
         {
             CheckRequest(region, req);
 
@@ -37,12 +39,12 @@ namespace VodSDK
             };
             VodClient vodClient = new VodClient(cred, region);
 
-            ApplyUploadResponse applyResp = DoApplyRequest(vodClient, req);
+            ApplyUploadResponse applyResp = await DoApplyRequest(vodClient, req);
             //Console.WriteLine(AbstractModel.ToJsonString(applyResp));
 
-            DoUploadAction(applyResp, req);
+            await DoUploadAction(applyResp, req);
 
-            CommitUploadResponse commitResp = DoCommitRequest(vodClient, applyResp);
+            CommitUploadResponse commitResp = await DoCommitRequest(vodClient, applyResp);
             //Console.WriteLine(AbstractModel.ToJsonString(commitResp));
 
             VodUploadResponse rsp= AbstractModel.FromJsonString<VodUploadResponse>( AbstractModel.ToJsonString(commitResp));
@@ -87,7 +89,7 @@ namespace VodSDK
             }
         }
 
-        private ApplyUploadResponse DoApplyRequest(VodClient client, VodUploadRequest req)
+        private async Task<ApplyUploadResponse> DoApplyRequest(VodClient client, VodUploadRequest req)
         {
             req.MediaType = System.IO.Path.GetExtension(req.MediaFilePath).Substring(1);
             req.MediaName = System.IO.Path.GetFileName(req.MediaFilePath);
@@ -101,8 +103,9 @@ namespace VodSDK
             {
                 try
                 {
-                    return client.ApplyUpload(req).
-                        ConfigureAwait(false).GetAwaiter().GetResult();
+                    ApplyUploadResponse rsp = await client.ApplyUpload(req);
+                    return rsp;
+
                 }
                 catch (TencentCloudSDKException exception)
                 {
@@ -117,7 +120,7 @@ namespace VodSDK
             throw err;
         }
 
-        private CommitUploadResponse DoCommitRequest(VodClient client, ApplyUploadResponse applyResp)
+        private async Task<CommitUploadResponse> DoCommitRequest(VodClient client, ApplyUploadResponse applyResp)
         {
             CommitUploadRequest commitReq = new CommitUploadRequest();
             commitReq.VodSessionKey = applyResp.VodSessionKey;
@@ -126,8 +129,7 @@ namespace VodSDK
             {
                 try
                 {
-                    return client.CommitUpload(commitReq).
-                        ConfigureAwait(false).GetAwaiter().GetResult();
+                    return await client.CommitUpload(commitReq);
                 }
                 catch (TencentCloudSDKException exception)
                 {
@@ -142,7 +144,7 @@ namespace VodSDK
             throw err;
         }
 
-        private void DoUploadAction(ApplyUploadResponse applyResp, VodUploadRequest req)
+        private async Task<int> DoUploadAction(ApplyUploadResponse applyResp, VodUploadRequest req)
         {
             string[] fields = applyResp.StorageBucket.Split('-');
             string cosAppId = fields[fields.Length - 1];
@@ -157,109 +159,38 @@ namespace VodSDK
                 (long)applyResp.TempCertificate.ExpiredTime, applyResp.TempCertificate.Token);
             CosXmlServer cosXml = new CosXmlServer(config, qCloudCredentialProvider);
 
-            MultiUpload(cosXml, applyResp.StorageBucket, applyResp.MediaStoragePath, req.MediaFilePath);
+            await MultiUpload(cosXml, applyResp.StorageBucket, applyResp.MediaStoragePath, req.MediaFilePath);
             if (!string.IsNullOrEmpty(req.CoverFilePath))
             {
-                MultiUpload(cosXml, applyResp.StorageBucket, applyResp.CoverStoragePath, req.CoverFilePath);
+                await MultiUpload(cosXml, applyResp.StorageBucket, applyResp.CoverStoragePath, req.CoverFilePath);
             }
+            return 0;
         }
-        private class UploadOnePart
+        private async Task<string> MultiUpload(COSXML.CosXml cosXml, string bucket, string key, string srcPath)
         {
-            CosXml CosXml;
-            UploadPartRequest Req;
-            public Exception partException;
-            public UploadPartResult Result { get; set; }
+            TransferConfig transferConfig = new TransferConfig();
+            TransferManager transferManager = new TransferManager(cosXml, transferConfig);
 
-            public UploadOnePart(CosXml cosXml, UploadPartRequest req)
-            {
-                CosXml = cosXml;
-                Req = req;
-            }
+            COSXMLUploadTask uploadTask = new COSXMLUploadTask(bucket, key);
+            uploadTask.SetSrcPath(srcPath);
+            string eTag = "";
 
-
-            public void UploadPartResult()
-            {
-                try
-                {
-                    Result = CosXml.UploadPart(Req);
-                }
-                catch (Exception e)
-                {
-                    partException = e;
-                }
-            }
-        }
-
-        private void MultiUpload(COSXML.CosXml cosXml, string bucket, string key, string srcPath)
-        {
             try
             {
-                InitMultipartUploadRequest initMultipartUploadRequest = new InitMultipartUploadRequest(bucket, key);
-                InitMultipartUploadResult initMultipartUploadResult = cosXml.InitMultipartUpload(initMultipartUploadRequest);
-
-                string uploadId = initMultipartUploadResult.initMultipartUpload.uploadId;
-
-                CompleteMultipartUploadRequest completeMultiUploadRequest = new CompleteMultipartUploadRequest(bucket, key, uploadId);
-
-                FileInfo fileInfo = new FileInfo(srcPath);
-                long contentLength = fileInfo.Length;
-                long partSize = MinPartSize;
-                long partNum = (contentLength + partSize - 1) / partSize;
-                if (partNum > MaxPartNum)
-                {
-                    partSize = (partNum + MaxPartNum - 1) / MaxPartNum * 1024 * 1024;
-                    partNum = (contentLength + partSize - 1) / partSize;
-                }
-
-                UploadOnePart[] uploadList = new UploadOnePart[PoolSize];
-                Thread[] workPool = new Thread[PoolSize];
-
-                for (int i = 0; i * partSize <= contentLength; i += PoolSize)
-                {
-                    for (int j = 0; j < PoolSize; j++)
-                    {
-                        if ((i + j) * partSize >= contentLength)
-                        {
-                            break;
-                        }
-
-                        UploadPartRequest uploadPartRequest = new UploadPartRequest(bucket, key, (int)(i + j + 1), uploadId, srcPath, (i + j) * partSize, partSize);
-
-                        uploadList[j] = new UploadOnePart(cosXml, uploadPartRequest);
-                        ThreadStart childref = new ThreadStart(uploadList[j].UploadPartResult);
-                        workPool[j] = new Thread(childref);
-                        workPool[j].Start();
-                    }
-                    for (int j = 0; j < PoolSize; j++)
-                    {
-                        if ((i + j) * partSize >= contentLength)
-                        {
-                            break;
-                        }
-                        workPool[j].Join();
-                        if (uploadList[j].partException != null)
-                        {
-                            throw uploadList[i].partException;
-                        }
-                        completeMultiUploadRequest.SetPartNumberAndETag(i + j + 1, uploadList[j].Result.eTag);
-                    }
-                }
-
-                //execute
-                CompleteMultipartUploadResult completeMultiUploadResult = cosXml.CompleteMultiUpload(completeMultiUploadRequest);
+                COSXML.Transfer.COSXMLUploadTask.UploadTaskResult result = await transferManager.UploadAsync(uploadTask);
+                eTag = result.eTag;
             }
-            catch (COSXML.CosException.CosClientException clientEx)
+            catch (Exception e)
             {
-                throw clientEx;
+                throw e;
             }
-            catch (COSXML.CosException.CosServerException serverEx)
-            {
-                throw serverEx;
-            }
+            return eTag;
         }
     }
 
-    public class VodClientException : Exception
+
+
+public class VodClientException : Exception
     {
         public VodClientException(string e) : base(e) { }
     }

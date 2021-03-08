@@ -3,11 +3,13 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>1.0.2</Version>
+    <Description>VodSDK</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.3" />
-    <PackageReference Include="TencentCloudSDK" Version="3.0.37" />
+    <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.17" />
+    <PackageReference Include="TencentCloudSDK" Version="3.0.93" />
   </ItemGroup>
 
 </Project>
