@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using VodSDK;
 
 namespace VodSDKTest
@@ -11,7 +13,8 @@ namespace VodSDKTest
             VodUploadRequest req = new VodUploadRequest();
             req.MediaFilePath = "F:\\sz-rz\\a.mp4";
 
-            VodUploadResponse response = client.Upload("ap-guangzhou", req);
+            Task<VodUploadResponse> r = client.Upload("ap-guangzhou", req);
+            VodUploadResponse response = r.Result;
 
 
             Console.Write("{0}|{1}\n", response.FileId, response.MediaUrl);
