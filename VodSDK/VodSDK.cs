@@ -166,25 +166,22 @@ namespace VodSDK
             }
             return 0;
         }
-        private async Task<string> MultiUpload(COSXML.CosXml cosXml, string bucket, string key, string srcPath)
+        private async Task<COSXML.Transfer.COSXMLUploadTask.UploadTaskResult> MultiUpload(COSXML.CosXml cosXml, string bucket, string key, string srcPath)
         {
             TransferConfig transferConfig = new TransferConfig();
             TransferManager transferManager = new TransferManager(cosXml, transferConfig);
 
             COSXMLUploadTask uploadTask = new COSXMLUploadTask(bucket, key);
             uploadTask.SetSrcPath(srcPath);
-            string eTag = "";
 
             try
             {
-                COSXML.Transfer.COSXMLUploadTask.UploadTaskResult result = await transferManager.UploadAsync(uploadTask);
-                eTag = result.eTag;
+                return await transferManager.UploadAsync(uploadTask);
             }
             catch (Exception e)
             {
                 throw e;
             }
-            return eTag;
         }
     }
 
