@@ -42,7 +42,7 @@ namespace ConsoleApp
             request.MediaFilePath = "/data/file/Wildlife.mp4";
             try
             {
-                VodUploadResponse response = client.Upload("ap-guangzhou", request);
+                VodUploadResponse response = client.Upload("ap-guangzhou", request).Result;
                 Console.WriteLine(response.FileId);
             }
             catch (Exception e)
