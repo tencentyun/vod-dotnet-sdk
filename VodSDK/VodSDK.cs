@@ -171,7 +171,7 @@ namespace VodSDK
             TransferConfig transferConfig = new TransferConfig();
             TransferManager transferManager = new TransferManager(cosXml, transferConfig);
 
-            COSXMLUploadTask uploadTask = new COSXMLUploadTask(bucket, key);
+            COSXMLUploadTask uploadTask = new COSXMLUploadTask(bucket, key.Substring(1));
             uploadTask.SetSrcPath(srcPath);
 
             try

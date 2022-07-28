@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.17" />
-    <PackageReference Include="TencentCloudSDK" Version="3.0.93" />
+    <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.32" />
+    <PackageReference Include="TencentCloudSDK" Version="3.0.567" />
   </ItemGroup>
 
 </Project>
