@@ -8,19 +8,6 @@
 3. 获取 SecretID 、 SecretKey
 
 ## 使用方式
-
-### 通过 nuget 安装(推荐)
-1. 通过命令行安装: 
-
-```
-dotnet add package VodSDK --version 1.0.1
-```
-
-2. 通过 Visual Studio 的 nuget 包管理工具，搜索 VodSDK 并安装
-
-
-### 通过源码包安装
-
 下载最新代码，解压后安装到你的工作目录下，使用 Visual Studio 2017 打开编译。因为此 SDK 还依赖外部的包，所以需要同时安装下面两个 SDK： 
 1. [云API SDK](https://github.com/TencentCloud/tencentcloud-sdk-dotnet)
 2. [对象存储 SDK](https://github.com/tencentyun/qcloud-sdk-dotnet)
