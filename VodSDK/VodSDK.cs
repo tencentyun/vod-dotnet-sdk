@@ -91,8 +91,14 @@ namespace VodSDK
 
         private async Task<ApplyUploadResponse> DoApplyRequest(VodClient client, VodUploadRequest req)
         {
-            req.MediaType = System.IO.Path.GetExtension(req.MediaFilePath).Substring(1);
-            req.MediaName = System.IO.Path.GetFileName(req.MediaFilePath);
+            if (string.IsNullOrEmpty(req.MediaType))
+            {
+                req.MediaType = System.IO.Path.GetExtension(req.MediaFilePath).Substring(1);
+            }
+            if (string.IsNullOrEmpty(req.MediaName))
+            {
+                req.MediaName = System.IO.Path.GetFileName(req.MediaFilePath);
+            }
             if (req.CoverFilePath != null && req.CoverFilePath != "")
             {
                 req.CoverType = System.IO.Path.GetExtension(req.CoverFilePath).Substring(1);
